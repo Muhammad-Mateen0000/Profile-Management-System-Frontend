@@ -1,11 +1,21 @@
+
 import supabase from "./supabase";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, "");
 
 const request = async (url, options = {}) => {
+  if (!API_URL) {
+    throw new Error("VITE_API_URL is not configured.");
+  }
+
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error(sessionError.message);
+  }
 
   const headers = {
     ...(options.body instanceof FormData
@@ -23,23 +33,32 @@ const request = async (url, options = {}) => {
     headers,
   });
 
-  const data = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
 
   if (!response.ok) {
     throw {
       response: {
         status: response.status,
-        data,
+        data:
+          typeof data === "string"
+            ? { message: data || "Request failed" }
+            : data,
       },
     };
   }
+
   return { data };
 };
 
-export const getProfile = () => request("/profile");
+// Profile APIs
+export const getProfile = () => request("/api/profile");
 
 export const updateProfile = (payload) =>
-  request("/profile", {
+  request("/api/profile", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -48,49 +67,53 @@ export const uploadProfileImage = (file) => {
   const formData = new FormData();
   formData.append("avatar", file);
 
-  return request("/profile/avatar", {
+  return request("/api/profile/avatar", {
     method: "POST",
     body: formData,
   });
 };
 
 export const deleteProfileImage = () =>
-  request("/profile/avatar", {
+  request("/api/profile/avatar", {
     method: "DELETE",
   });
 
+// Admin user APIs
 export const createUser = (payload) =>
-  request("/admin/users", {
+  request("/api/admin/users", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 
 export const getUsers = (search = "") =>
   request(
-    `/admin/users${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+    `/api/admin/users${
+      search ? `?search=${encodeURIComponent(search)}` : ""
+    }`,
   );
 
-export const getUser = (id) => request(`/admin/users/${id}`);
+export const getUser = (id) =>
+  request(`/api/admin/users/${encodeURIComponent(id)}`);
 
 export const updateUser = (id, payload) =>
-  request(`/admin/users/${id}`, {
+  request(`/api/admin/users/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 
 export const updateUserRole = (id, role) =>
-  request(`/admin/users/${id}/role`, {
+  request(`/api/admin/users/${encodeURIComponent(id)}/role`, {
     method: "PATCH",
     body: JSON.stringify({ role }),
   });
 
 export const updateUserStatus = (id, status) =>
-  request(`/admin/users/${id}/status`, {
+  request(`/api/admin/users/${encodeURIComponent(id)}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
 
 export const deleteUser = (id) =>
-  request(`/admin/users/${id}`, {
+  request(`/api/admin/users/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
