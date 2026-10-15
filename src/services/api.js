@@ -33,7 +33,6 @@ const request = async (url, options = {}) => {
       },
     };
   }
-
   return { data };
 };
 

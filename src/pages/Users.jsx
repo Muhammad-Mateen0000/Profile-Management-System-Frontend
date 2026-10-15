@@ -233,7 +233,7 @@ const Users = () => {
         </div>
 
         {loading ? (
-          <Loader text="Loading users..." />
+          <Loader text="Loading..." />
         ) : users.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
             <UserRound size={32} className="mx-auto text-slate-300" />
